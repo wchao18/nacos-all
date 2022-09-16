@@ -196,6 +196,7 @@ public class NacosNamingService implements NamingService {
         Instance instance = new Instance();
         instance.setIp(ip);
         instance.setPort(port);
+        //默认权重
         instance.setWeight(1.0);
         instance.setClusterName(clusterName);
         
@@ -211,10 +212,15 @@ public class NacosNamingService implements NamingService {
     public void registerInstance(String serviceName, String groupName, Instance instance) throws NacosException {
         NamingUtils.checkInstanceIsLegal(instance);
         String groupedServiceName = NamingUtils.getGroupedName(serviceName, groupName);
+        //该字段表示注册的实例是否是临时实例还是持久化实例。
+        //如果是临时实例，则不会在 Nacos 服务端持久化存储，需要通过上报心跳的方式进行包活，
+        //如果一段时间内没有上报心跳，则会被 Nacos 服务端摘除。
         if (instance.isEphemeral()) {
+            //为注册服务设置一个定时任务获取心跳信息，默认为5s汇报一次
             BeatInfo beatInfo = beatReactor.buildBeatInfo(groupedServiceName, instance);
             beatReactor.addBeatInfo(groupedServiceName, beatInfo);
         }
+        // 发起注册请求, 送请求 url地址是：/nacos/v1/ns/instance
         serverProxy.registerService(groupedServiceName, groupName, instance);
     }
     

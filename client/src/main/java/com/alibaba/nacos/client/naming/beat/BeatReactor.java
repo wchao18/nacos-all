@@ -79,14 +79,14 @@ public class BeatReactor implements Closeable {
      */
     public void addBeatInfo(String serviceName, BeatInfo beatInfo) {
         NAMING_LOGGER.info("[BEAT] adding beat: {} to beat map.", beatInfo);
-        String key = buildKey(serviceName, beatInfo.getIp(), beatInfo.getPort());
+        String key = buildKey(serviceName, beatInfo.getIp(), beatInfo.getPort());// DEFAULT_GROUP@@service-provider#192.168.60.1#1010
         BeatInfo existBeat = null;
         //fix #1733 again
         if ((existBeat = dom2Beat.put(key, beatInfo)) != null) {
             existBeat.setStopped(true);
         }
         executorService.schedule(new BeatTask(beatInfo), beatInfo.getPeriod(), TimeUnit.MILLISECONDS);
-        MetricsMonitor.getDom2BeatSizeMonitor().set(dom2Beat.size());
+        MetricsMonitor.getDom2BeatSizeMonitor().set(dom2Beat.size());//注册监控器
     }
     
     /**
@@ -132,7 +132,7 @@ public class BeatReactor implements Closeable {
         beatInfo.setWeight(instance.getWeight());
         beatInfo.setMetadata(instance.getMetadata());
         beatInfo.setScheduled(false);
-        beatInfo.setPeriod(instance.getInstanceHeartBeatInterval());
+        beatInfo.setPeriod(instance.getInstanceHeartBeatInterval());//5秒
         return beatInfo;
     }
     
@@ -147,7 +147,7 @@ public class BeatReactor implements Closeable {
         ThreadUtils.shutdownThreadPool(executorService, NAMING_LOGGER);
         NAMING_LOGGER.info("{} do shutdown stop", className);
     }
-    
+    //创建定时心跳任务
     class BeatTask implements Runnable {
         
         BeatInfo beatInfo;
@@ -163,6 +163,7 @@ public class BeatReactor implements Closeable {
             }
             long nextTime = beatInfo.getPeriod();
             try {
+                //发送心跳
                 JsonNode result = serverProxy.sendBeat(beatInfo, BeatReactor.this.lightBeatEnabled);
                 long interval = result.get("clientBeatInterval").asLong();
                 boolean lightBeatEnabled = false;
@@ -177,6 +178,7 @@ public class BeatReactor implements Closeable {
                 if (result.has(CommonParams.CODE)) {
                     code = result.get(CommonParams.CODE).asInt();
                 }
+                //如果心跳实例没有找到的话那么就进行重新注册
                 if (code == NamingResponseCode.RESOURCE_NOT_FOUND) {
                     Instance instance = new Instance();
                     instance.setPort(beatInfo.getPort());

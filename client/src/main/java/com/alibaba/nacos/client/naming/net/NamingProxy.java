@@ -518,7 +518,8 @@ public class NamingProxy implements Closeable {
             String method) throws NacosException {
         
         params.put(CommonParams.NAMESPACE_ID, getNamespaceId());
-        
+
+        //如果服务列表和 nacosDomain 都为空的话那么就是没有可利用的服务就抛出异常
         if (CollectionUtils.isEmpty(servers) && StringUtils.isBlank(nacosDomain)) {
             throw new NacosException(NacosException.INVALID_PARAM, "no server available");
         }
@@ -526,7 +527,7 @@ public class NamingProxy implements Closeable {
         NacosException exception = new NacosException();
         
         if (StringUtils.isNotBlank(nacosDomain)) {
-            for (int i = 0; i < maxRetry; i++) {
+            for (int i = 0; i < maxRetry; i++) {// 最大重试测试书3次 maxRetry = 3
                 try {
                     return callServer(api, params, body, nacosDomain, method);
                 } catch (NacosException e) {
@@ -603,7 +604,7 @@ public class NamingProxy implements Closeable {
             url = NamingHttpClientManager.getInstance().getPrefix() + curServer + api;
         }
         
-        try {
+        try {//1.4.1版本是httpClient
             HttpRestResult<String> restResult = nacosRestTemplate
                     .exchangeForm(url, header, Query.newInstance().initParams(params), body, method, String.class);
             end = System.currentTimeMillis();
